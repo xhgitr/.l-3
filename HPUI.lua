@@ -65,15 +65,15 @@ end
 local BuiltinLoc = {
     zh = {ui_settings = "设置", ui_ui = "界面", ui_theme = "主题", ui_key = "显示/隐藏 快捷键", ui_glow = "流光边框", ui_rainbow = "彩虹流光",
         ui_blur = "背景模糊", ui_lang = "语言", ui_mini = "最小化为小方块", ui_slider = "滑条", ui_slidercolor = "滑条颜色",
-        ui_reset = "恢复主题色", ui_bg = "自定义背景", ui_bghelp = "填图片 ID / 链接 / 本地图片；填一个放满 png 帧图的文件夹 (如 HPUI/frames) 就是动态背景；也可填 mp4/webm 视频 (部分执行器不支持)",
-        ui_fps = "动图帧率", ui_bgsrc = "背景 图片/文件夹/视频", ui_bgt = "图片透明度 (%)", ui_ovl = "遮罩浓度 (%)", ui_clear = "清除背景",
+        ui_reset = "恢复主题色", ui_bg = "自定义背景", ui_bghelp = "填图片 ID / 链接 / 本地图片；填一个放满 png 帧图的文件夹 (如 HPUI/frames) 就是动态背景",
+        ui_fps = "动图帧率", ui_bgsrc = "背景 图片/文件夹", ui_bgt = "图片透明度 (%)", ui_ovl = "遮罩浓度 (%)", ui_clear = "清除背景",
         ui_cfg = "配置", ui_cfgname = "配置名", ui_cfglist = "已有配置", ui_save = "保存配置", ui_load = "读取配置", ui_info = "信息",
         ui_destroy = "销毁界面", ui_search = "搜索功能…", ui_confirm = "确定", ui_cancel = "取消", ui_destroy_q = "确定要销毁界面吗？",
         ui_perf = "性能模式", ui_perf_d = "停掉边框和标题动画，降低显卡占用", ui_lowfps = "检测到持续掉帧，已自动关闭动态背景", ui_autoperf = "帧率偏低，已自动开启性能模式"},
     en = {ui_settings = "Settings", ui_ui = "Interface", ui_theme = "Theme", ui_key = "Toggle key", ui_glow = "Glow border", ui_rainbow = "Rainbow glow",
         ui_blur = "Background blur", ui_lang = "Language", ui_mini = "Minimize to square", ui_slider = "Sliders", ui_slidercolor = "Slider color",
-        ui_reset = "Use theme color", ui_bg = "Custom background", ui_bghelp = "Enter an image ID / link / local image. A folder full of png frames (e.g. HPUI/frames) becomes an animated background. mp4/webm video also works on some executors.",
-        ui_fps = "Frame rate", ui_bgsrc = "Background image/folder/video", ui_bgt = "Image opacity (%)", ui_ovl = "Overlay strength (%)", ui_clear = "Clear background",
+        ui_reset = "Use theme color", ui_bg = "Custom background", ui_bghelp = "Enter an image ID / link / local image. A folder full of png frames (e.g. HPUI/frames) becomes an animated background.",
+        ui_fps = "Frame rate", ui_bgsrc = "Background image/folder", ui_bgt = "Image opacity (%)", ui_ovl = "Overlay strength (%)", ui_clear = "Clear background",
         ui_cfg = "Config", ui_cfgname = "Config name", ui_cfglist = "Saved configs", ui_save = "Save config", ui_load = "Load config", ui_info = "Info",
         ui_destroy = "Destroy UI", ui_search = "Search…", ui_confirm = "Confirm", ui_cancel = "Cancel", ui_destroy_q = "Destroy the UI?",
         ui_perf = "Performance mode", ui_perf_d = "Stops border/title animations to reduce GPU load", ui_lowfps = "Low FPS detected, animated background disabled", ui_autoperf = "Low FPS, performance mode enabled"},
@@ -149,7 +149,6 @@ local function Hash(s)
     return tostring(h)
 end
 
-local VIDEO_EXT = {mp4 = true, webm = true, mov = true, m4v = true}
 local function GetExt(src)
     local clean = src:gsub("[%?#].*$", "")
     return (clean:match("%.(%w+)$") or ""):lower()
@@ -157,24 +156,17 @@ end
 
 local function ResolveImage(src)
     if src == nil or src == "" then return nil end
-    if type(src) == "number" then return "rbxassetid://" .. src, false end
+    if type(src) == "number" then return "rbxassetid://" .. src end
     src = tostring(src)
-    local forceVideo = false
-    local pre = src:match("^video:(.+)$")
-    if pre then
-        src = pre
-        forceVideo = true
-    end
-    if src:match("^%d+$") then return "rbxassetid://" .. src, forceVideo end
-    local ext = GetExt(src)
-    local isVideo = forceVideo or VIDEO_EXT[ext] == true
-    if src:match("^rbxasset") or src:match("^http://www%.roblox%.com") then return src, isVideo end
-    if not getcustomasset then return nil, isVideo, "执行器不支持 getcustomasset，只能填图片 ID" end
+    if src:match("^%d+$") then return "rbxassetid://" .. src end
+    if src:match("^rbxasset") or src:match("^http://www%.roblox%.com") then return src end
+    if not getcustomasset then return nil, "执行器不支持 getcustomasset，只能填图片 ID" end
     pcall(function() if makefolder and not isfolder("HPUI") then makefolder("HPUI") end end)
+    local ext = GetExt(src)
 
     if src:match("^https?://") then
-        if not (writefile and isfile) then return nil, isVideo, "执行器不支持 writefile，无法缓存链接" end
-        local path = "HPUI/bg_" .. Hash(src) .. "." .. (isVideo and "webm" or ((ext ~= "" and #ext <= 5) and ext or "img"))
+        if not (writefile and isfile) then return nil, "执行器不支持 writefile，无法缓存链接" end
+        local path = "HPUI/bg_" .. Hash(src) .. "." .. ((ext ~= "" and #ext <= 5) and ext or "img")
         local have = false
         pcall(function() have = isfile(path) end)
         if not have then
@@ -192,36 +184,28 @@ local function ResolveImage(src)
                     end
                 end
             end
-            if not data or #data < 16 then return nil, isVideo, "下载失败: " .. tostring(why or "内容为空") end
+            if not data or #data < 16 then return nil, "下载失败: " .. tostring(why or "内容为空") end
             local head = data:sub(1, 15):lower()
             if head:sub(1, 1) == "<" then
-                return nil, isVideo, "这个链接返回的是网页，不是文件。GitHub 请用 raw.githubusercontent.com 开头的直链"
+                return nil, "这个链接返回的是网页，不是文件。GitHub 请用 raw.githubusercontent.com 开头的直链"
             end
             local okw, errw = pcall(writefile, path, data)
-            if not okw then return nil, isVideo, "写入文件失败: " .. tostring(errw) end
+            if not okw then return nil, "写入文件失败: " .. tostring(errw) end
         end
         local ok, asset = pcall(getcustomasset, path)
-        if not ok or not asset then return nil, isVideo, "getcustomasset 失败: " .. tostring(asset) end
-        return asset, isVideo
+        if not ok or not asset then return nil, "getcustomasset 失败: " .. tostring(asset) end
+        return asset
     end
 
     if isfile then
         local ok, exist = pcall(isfile, src)
         if ok and exist then
-            local use = src
-            if isVideo and ext ~= "webm" and readfile and writefile then
-                local np = "HPUI/bg_" .. Hash(src) .. ".webm"
-                local have = false
-                pcall(function() have = isfile(np) end)
-                if not have then pcall(function() writefile(np, readfile(src)) end) end
-                use = np
-            end
-            local ok2, asset = pcall(getcustomasset, use)
-            if not ok2 or not asset then return nil, isVideo, "getcustomasset 失败: " .. tostring(asset) end
-            return asset, isVideo
+            local ok2, asset = pcall(getcustomasset, src)
+            if not ok2 or not asset then return nil, "getcustomasset 失败: " .. tostring(asset) end
+            return asset
         end
     end
-    return nil, isVideo, "找不到文件: " .. src
+    return nil, "找不到文件: " .. src
 end
 
 local function ClampIntoView(target, margin, time)
@@ -397,9 +381,12 @@ function library.new(self, name, theme)
     local isGroup = false
     Main.ClipsDescendants = true
     Main.Name = "Main"
+    Main.AnchorPoint = Vector2.new(0.5, 0.5)
+    Main.Position = UDim2.fromScale(0.5, 0.5)
     Main.Size = UDim2.fromScale(1, 1)
     Main.BorderSizePixel = 0
     Main.Parent = Holder
+    local MainScale = New("UIScale", {Scale = 1, Parent = Main})
     if isGroup then Main.GroupTransparency = 1 end
     Corner(18, Main)
     local decor, decorAcc = {}, 0
@@ -432,9 +419,6 @@ function library.new(self, name, theme)
     local BgImage = New("ImageLabel", {Name = "BgImage", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1),
         ScaleType = Enum.ScaleType.Crop, ImageTransparency = 1, Parent = BgLayer})
     Corner(18, BgImage)
-    local BgVideo = New("VideoFrame", {Name = "BgVideo", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Looped = true,
-        Volume = 0, Visible = false, Parent = BgLayer})
-    Corner(18, BgVideo)
     local Overlay = New("Frame", {Name = "Overlay", Size = UDim2.fromScale(1, 1), BorderSizePixel = 0, BackgroundTransparency = 1, Parent = BgLayer})
     Corner(18, Overlay)
     bind(function(t, a) P(Overlay, {BackgroundColor3 = t.Main}, a) end)
@@ -721,7 +705,10 @@ function library.new(self, name, theme)
                 end
             end
             secObj.refresh = refresh
-            ObjsL:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() refresh(true) end)
+            ObjsL:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+                if W.Animating then return end
+                refresh(true)
+            end)
             refresh(true)
 
             Header.MouseButton1Click:Connect(function()
@@ -1429,41 +1416,44 @@ function library.new(self, name, theme)
         end
     end})
 
-    local Ghost = New("Frame", {Name = "Ghost", AnchorPoint = Vector2.new(0.5, 0.5), BorderSizePixel = 0, BackgroundTransparency = 0.1,
-        Visible = false, Parent = gui})
-    local GhostCorner = Corner(18, Ghost)
-    local GhostStroke = New("UIStroke", {Thickness = 2, Transparency = 0.2, Parent = Ghost})
-    bind(function(t, a) P(Ghost, {BackgroundColor3 = t.Main}, a) P(GhostStroke, {Color = t.Accent}, a) end)
-    local ghostToken = 0
-    local ghostBusyUntil = 0
-    local function ghostMove(fromPos, fromSize, fromR, toPos, toSize, toR, time, done)
-        ghostToken += 1
-        local tok = ghostToken
-        ghostBusyUntil = os.clock() + time + 0.1
-        Ghost.Position, Ghost.Size = fromPos, fromSize
-        GhostCorner.CornerRadius = UDim.new(0, fromR)
-        Ghost.Visible = true
-        local info = TweenInfo.new(time, Quint, Out)
-        TweenService:Create(Ghost, info, {Position = toPos, Size = toSize}):Play()
-        TweenService:Create(GhostCorner, info, {CornerRadius = UDim.new(0, toR)}):Play()
-        task.delay(time, function()
-            if tok == ghostToken then
-                Ghost.Visible = false
-                if done then done() end
-            end
-        end)
-    end
-
-    Holder:GetPropertyChangedSignal("Visible"):Connect(function()
-        if Holder.Visible then
-            ghostToken += 1
-            Ghost.Visible = false
-        end
-    end)
-
     local Blur
     local function syncBlur()
         if Blur then Blur.Enabled = W.Blur and W.State == "open" end
+    end
+
+    local animToken = 0
+    local animUntil = 0
+    local scaleTween
+    W.Animating = false
+
+    local function settle()
+        if W.Destroyed then return end
+        W.Animating = false
+        animUntil = 0
+        if scaleTween then scaleTween:Cancel() scaleTween = nil end
+        if W.State == "open" then
+            Mini.Visible = false
+            miniTween:Pause()
+            MainScale.Scale = 1
+            Holder.Visible = true
+            for _, tb in ipairs(W.Tabs) do
+                for _, sec in ipairs(tb.sections) do
+                    pcall(sec.refresh, true)
+                end
+            end
+            if not W.Perf then
+                glowTween:Play()
+                titleTween:Play()
+            end
+            ClampIntoView(Holder, 8, 0.01)
+        else
+            Holder.Visible = false
+            MainScale.Scale = 1
+            Mini.Visible = true
+            MiniScale.Scale = 0.7
+            Tween(MiniScale, 0.3, {Scale = 1}, EBack)
+            miniTween:Play()
+        end
     end
 
     local function animateIn()
@@ -1473,39 +1463,47 @@ function library.new(self, name, theme)
     function W.Minimize(self)
         if W.Destroyed or W.State ~= "open" then return end
         W.State = "mini"
+        animToken += 1
+        local tok = animToken
         syncBlur()
         if not W.MiniMoved then Mini.Position = Holder.Position end
-        local fp, fs = Holder.Position, Holder.Size
-        Holder.Visible = false
         glowTween:Pause()
         titleTween:Pause()
-        W:SyncVideo()
-        ghostMove(fp, fs, 18, Mini.Position, UDim2.fromOffset(MINI, MINI), 24, 0.28, function()
-            if W.State == "mini" then
-                Mini.Visible = true
-                MiniScale.Scale = 0.88
-                Tween(MiniScale, 0.3, {Scale = 1}, EBack)
-                miniTween:Play()
-            end
+        if scaleTween then scaleTween:Cancel() scaleTween = nil end
+        if W.Perf or not Holder.Visible then
+            settle()
+            return
+        end
+        W.Animating = true
+        animUntil = os.clock() + 0.45
+        scaleTween = Tween(MainScale, 0.2, {Scale = 0.04}, Quint, In)
+        task.delay(0.2, function()
+            if tok == animToken then settle() end
         end)
     end
 
     function W.Restore(self)
         if W.Destroyed or W.State == "open" then return end
         W.State = "open"
+        animToken += 1
+        local tok = animToken
         syncBlur()
         Mini.Visible = false
         miniTween:Pause()
-        ghostMove(Mini.Position, UDim2.fromOffset(MINI, MINI), 24, Holder.Position, Holder.Size, 18, 0.3, function()
-            if W.State == "open" then
-                Holder.Visible = true
-                if not W.Perf then
-                    glowTween:Play()
-                    titleTween:Play()
-                end
-                W:SyncVideo()
-                ClampIntoView(Holder, 8, 0.01)
-            end
+        if scaleTween then scaleTween:Cancel() scaleTween = nil end
+        if W.Perf then
+            settle()
+            return
+        end
+        if not Holder.Visible then
+            MainScale.Scale = 0.55
+            Holder.Visible = true
+        end
+        W.Animating = true
+        animUntil = os.clock() + 0.5
+        scaleTween = Tween(MainScale, 0.26, {Scale = 1}, Quint, Out)
+        task.delay(0.26, function()
+            if tok == animToken then settle() end
         end)
     end
 
@@ -1518,10 +1516,10 @@ function library.new(self, name, theme)
         W.Destroyed = true
         for _, c in ipairs(conns) do pcall(function() c:Disconnect() end) end
         conns = {}
+        animToken += 1
+        if scaleTween then scaleTween:Cancel() scaleTween = nil end
         if Holder.Visible and not instant then
-            local fp, fs = Holder.Position, Holder.Size
-            Holder.Visible = false
-            ghostMove(fp, fs, 18, fp, UDim2.fromOffset(0, 0), 18, 0.25)
+            Tween(MainScale, 0.2, {Scale = 0.04}, Quint, In)
         end
         Mini.Visible = false
         if Blur then Blur:Destroy() Blur = nil end
@@ -1588,20 +1586,10 @@ function library.new(self, name, theme)
         MiniStroke.Transparency = W.Glow and 0 or 0.7
         MiniGrad.Color = glowColor(W.theme)
     end
-    function W.SyncVideo(self)
-        local vid = W.HasBg and W.BgIsVideo
-        pcall(function()
-            if vid and W.State == "open" then BgVideo:Play() else BgVideo:Pause() end
-        end)
-    end
-
     local function applyBg(animated)
         local on = W.HasBg
-        local vid = on and W.BgIsVideo
-        P(BgImage, {ImageTransparency = (on and not vid) and W.BgTransparency or 1}, animated, 0.25)
-        BgVideo.Visible = vid and true or false
+        P(BgImage, {ImageTransparency = on and W.BgTransparency or 1}, animated, 0.25)
         P(Overlay, {BackgroundTransparency = on and (1 - W.OverlayOpacity) or 1}, animated, 0.25)
-        W:SyncVideo()
     end
 
     function W.SetBackground(self, src, transparency)
@@ -1614,7 +1602,7 @@ function library.new(self, name, theme)
         task.spawn(function()
             local function fail(msg)
                 W.HasBg = false
-                W.BgIsVideo = false
+                if not src or src == "" then BgImage.Image = "" end
                 applyBg(true)
                 if src and src ~= "" then W:Notify{Title = "背景", Content = msg, Type = "Warning", Duration = 7} end
             end
@@ -1634,9 +1622,7 @@ function library.new(self, name, theme)
                     fail("文件夹里没有 png/jpg 帧图，或执行器不支持 getcustomasset")
                     return
                 end
-                W.BgIsVideo = false
                 W.FrameMode = true
-                BgVideo.Video = ""
                 W.HasBg = true
                 applyBg(true)
                 local cache = {}
@@ -1655,29 +1641,15 @@ function library.new(self, name, theme)
                 return
             end
 
-            local img, isVideo, err = ResolveImage(src)
+            local img, err = ResolveImage(src)
             if W.FrameToken ~= tok then return end
             if not img then
                 fail(err or "加载失败")
                 return
             end
-            W.BgIsVideo = isVideo and true or false
-            if W.BgIsVideo then
-                BgImage.Image = ""
-                BgVideo.Video = img
-                W.HasBg = true
-                applyBg(true)
-                local t0 = os.clock()
-                while os.clock() - t0 < 12 and not BgVideo.IsLoaded do task.wait(0.25) end
-                if W.FrameToken == tok and not BgVideo.IsLoaded then
-                    W:Notify{Title = "视频背景", Content = "视频已下载，但这个执行器的 VideoFrame 播放不了它。可以改用「帧图文件夹」做动态背景", Type = "Warning", Duration = 8}
-                end
-            else
-                BgVideo.Video = ""
-                BgImage.Image = img
-                W.HasBg = true
-                applyBg(true)
-            end
+            BgImage.Image = img
+            W.HasBg = true
+            applyBg(true)
         end)
     end
     function W.SetBackgroundTransparency(self, v) W.BgTransparency = math.clamp(v, 0, 1) applyBg(true) end
@@ -1872,6 +1844,7 @@ function library.new(self, name, theme)
     Track(RunService.Heartbeat:Connect(function(dt)
         frames += 1
         decorAcc += dt
+        if W.Animating and os.clock() > animUntil then settle() end
         if decorAcc >= 0.05 then
             local step = decorAcc
             decorAcc = 0
@@ -1891,7 +1864,6 @@ function library.new(self, name, theme)
         if now - lastT >= 0.5 then
             fps = math.floor(frames / (now - lastT) + 0.5)
             frames, lastT = 0, now
-            if Ghost.Visible and now > ghostBusyUntil then Ghost.Visible = false end
             if active and now - active.t > 6 then releaseDrag() end
             if W.State == "open" and not W.Perf then
                 if fps < 24 then W.SlowTicks += 1 else W.SlowTicks = 0 end
@@ -1903,7 +1875,7 @@ function library.new(self, name, theme)
             else
                 W.SlowTicks = 0
             end
-            if W.HasBg and (W.BgIsVideo or W.FrameMode) and W.State == "open" then
+            if W.HasBg and W.FrameMode and W.State == "open" then
                 if fps < 12 then W.LowFps += 1 else W.LowFps = 0 end
                 if W.LowFps >= 8 then
                     W.LowFps = 0
