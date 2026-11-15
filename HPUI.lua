@@ -29,7 +29,7 @@ local Themes = {
     Glass = {Main = rgb(16, 18, 22), Side = rgb(16, 18, 22), Element = rgb(0, 0, 0), Hover = rgb(0, 0, 0),
         Accent = rgb(61, 220, 132), Accent2 = rgb(0, 200, 255), Text = rgb(245, 247, 250), SubText = rgb(185, 190, 200),
         Stroke = rgb(255, 255, 255), Off = rgb(255, 255, 255), Inset = rgb(255, 255, 255),
-        MainA = 0.3, ElemA = 0.5, SecA = 1, HoverA = 0.32, InsetA = 0.9},
+        MainA = 0.55, ElemA = 0.12, SecA = 1, HoverA = 0.04, InsetA = 0.88},
     Midnight = {Main = rgb(28, 33, 55), Side = rgb(22, 26, 44), Element = rgb(255, 255, 255), Hover = rgb(255, 255, 255),
         Accent = rgb(96, 140, 255), Accent2 = rgb(190, 110, 255), Text = rgb(245, 247, 255), SubText = rgb(185, 192, 220),
         Stroke = rgb(255, 255, 255), Off = rgb(255, 255, 255), Inset = rgb(0, 0, 0),
@@ -352,7 +352,8 @@ function library.new(self, name, theme)
         size = cfg.Size
     end
 
-    W.Glow = cfg.Glow ~= false
+    W.Glow = cfg.Glow == true
+    W.Flat = cfg.Flat ~= false
     W.Rainbow = cfg.Rainbow ~= false
     W.BgFps = 12
     W.SliderPaints = {}
@@ -386,9 +387,8 @@ function library.new(self, name, theme)
     Main.Size = UDim2.fromScale(1, 1)
     Main.BorderSizePixel = 0
     Main.Parent = Holder
-    local MainScale = New("UIScale", {Scale = 1, Parent = Main})
     if isGroup then Main.GroupTransparency = 1 end
-    Corner(18, Main)
+    Corner(14, Main)
     local decor, decorAcc = {}, 0
     local function DecorTween(grad, kind, period)
         local d = {grad = grad, kind = kind, period = period, active = false, t = 0}
@@ -418,9 +418,9 @@ function library.new(self, name, theme)
     local BgLayer = New("Frame", {Name = "BgLayer", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), ZIndex = 0, Parent = Main})
     local BgImage = New("ImageLabel", {Name = "BgImage", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1),
         ScaleType = Enum.ScaleType.Crop, ImageTransparency = 1, Parent = BgLayer})
-    Corner(18, BgImage)
+    Corner(14, BgImage)
     local Overlay = New("Frame", {Name = "Overlay", Size = UDim2.fromScale(1, 1), BorderSizePixel = 0, BackgroundTransparency = 1, Parent = BgLayer})
-    Corner(18, Overlay)
+    Corner(14, Overlay)
     bind(function(t, a) P(Overlay, {BackgroundColor3 = t.Main}, a) end)
 
     local Top = New("Frame", {Name = "Top", Size = UDim2.new(1, 0, 0, 36), BackgroundTransparency = 1, Parent = Main})
@@ -525,7 +525,7 @@ function library.new(self, name, theme)
         BorderSizePixel = 0, BackgroundTransparency = 0.85, Parent = Side})
     bind(function(t, a) P(Side, {BackgroundColor3 = t.Side}, a); P(SideLine, {BackgroundColor3 = t.Stroke, BackgroundTransparency = 1}, a) end)
 
-    local SearchBg = New("Frame", {Position = UDim2.fromOffset(8, 42), Size = UDim2.new(1, -16, 0, 30), BorderSizePixel = 0, Parent = Side})
+    local SearchBg = New("Frame", {Position = UDim2.fromOffset(8, 42), Size = UDim2.new(1, -16, 0, 30), BorderSizePixel = 0, Visible = cfg.Search == true, Parent = Side})
     Corner(9, SearchBg)
     local SearchBox = New("TextBox", {BackgroundTransparency = 1, Position = UDim2.fromOffset(10, 0), Size = UDim2.new(1, -20, 1, 0),
         Font = Enum.Font.Gotham, PlaceholderText = "搜索功能…", Text = "", TextSize = 13, ClearTextOnFocus = false,
@@ -536,8 +536,8 @@ function library.new(self, name, theme)
         P(SearchBox, {TextColor3 = t.Text, PlaceholderColor3 = t.SubText}, a)
     end)
 
-    local TabList = New("ScrollingFrame", {Name = "TabList", BackgroundTransparency = 1, BorderSizePixel = 0, Position = UDim2.fromOffset(0, 80),
-        Size = UDim2.new(1, 0, 1, -126), ScrollBarThickness = 0, CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y, Parent = Side})
+    local TabList = New("ScrollingFrame", {Name = "TabList", BackgroundTransparency = 1, BorderSizePixel = 0, Position = UDim2.fromOffset(0, cfg.Search == true and 80 or 44),
+        Size = UDim2.new(1, 0, 1, cfg.Search == true and -126 or -90), ScrollBarThickness = 0, CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y, Parent = Side})
     New("UIListLayout", {Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder, Parent = TabList})
     Pad(2, 8, TabList)
 
@@ -571,10 +571,10 @@ function library.new(self, name, theme)
 
     local function setTabVisual(tab, active, animated)
         local t = th()
-        P(tab.Btn, {BackgroundTransparency = 1}, animated, 0.2)
+        P(tab.Btn, {BackgroundColor3 = t.Text, BackgroundTransparency = active and 0.9 or 1}, animated, 0.2)
         P(tab.Label, {TextColor3 = active and t.Text or t.SubText}, animated, 0.2)
-        P(tab.Icon, {[tab.IconIsImage and "ImageColor3" or "TextColor3"] = active and t.Accent or t.SubText}, animated, 0.2)
-        P(tab.Bar, {Size = active and UDim2.fromOffset(3, 18) or UDim2.fromOffset(3, 0), BackgroundColor3 = t.Accent}, animated, 0.3)
+        P(tab.Icon, {[tab.IconIsImage and "ImageColor3" or "TextColor3"] = active and t.Accent or t.Text}, animated, 0.2)
+        P(tab.Bar, {Size = UDim2.fromOffset(3, 0), BackgroundColor3 = t.Accent}, animated, 0.3)
     end
 
     local function filter(q)
@@ -626,7 +626,7 @@ function library.new(self, name, theme)
     local function createTab(tabName, icon, pinned)
         local tab = {sections = {}}
         tab.Btn = New("TextButton", {Name = "Tab_" .. tostring(tabName), AutoButtonColor = false, Text = "", BorderSizePixel = 0,
-            BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 30), LayoutOrder = #W.Tabs, Parent = pinned and Pinned or TabList})
+            BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 36), LayoutOrder = #W.Tabs, Parent = pinned and Pinned or TabList})
         Corner(9, tab.Btn)
         tab.Bar = New("Frame", {AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 2, 0.5, 0), Size = UDim2.fromOffset(3, 0),
             BorderSizePixel = 0, Parent = tab.Btn})
@@ -634,14 +634,14 @@ function library.new(self, name, theme)
 
         tab.IconIsImage = icon == nil or IsImage(icon)
         if tab.IconIsImage then
-            tab.Icon = New("ImageLabel", {BackgroundTransparency = 1, Position = UDim2.fromOffset(8, 7), Size = UDim2.fromOffset(16, 16),
+            tab.Icon = New("ImageLabel", {BackgroundTransparency = 1, Position = UDim2.fromOffset(10, 8), Size = UDim2.fromOffset(20, 20),
                 Image = ToImage(icon or 4370341699), Parent = tab.Btn})
         else
-            tab.Icon = New("TextLabel", {BackgroundTransparency = 1, Position = UDim2.fromOffset(8, 7), Size = UDim2.fromOffset(16, 16),
-                Font = Enum.Font.GothamBold, Text = tostring(icon), TextSize = 15, Parent = tab.Btn})
+            tab.Icon = New("TextLabel", {BackgroundTransparency = 1, Position = UDim2.fromOffset(10, 8), Size = UDim2.fromOffset(20, 20),
+                Font = Enum.Font.GothamBold, Text = tostring(icon), TextSize = 18, Parent = tab.Btn})
         end
-        tab.Label = New("TextLabel", {BackgroundTransparency = 1, Position = UDim2.fromOffset(30, 0), Size = UDim2.new(1, -34, 1, 0),
-            Font = Enum.Font.GothamMedium, Text = tostring(tabName), TextSize = 12, TextXAlignment = Left, TextStrokeTransparency = 0.55,
+        tab.Label = New("TextLabel", {BackgroundTransparency = 1, Position = UDim2.fromOffset(38, 0), Size = UDim2.new(1, -42, 1, 0),
+            Font = Enum.Font.GothamMedium, Text = tostring(tabName), TextSize = 13, TextXAlignment = Left, TextStrokeTransparency = 0.55,
             TextTruncate = Enum.TextTruncate.AtEnd, Parent = tab.Btn})
         LocSet(tab.Label, "Text", tostring(tabName))
 
@@ -671,12 +671,13 @@ function library.new(self, name, theme)
             local secObj = {name = secName, modules = {}, searching = false}
             table.insert(tab.sections, secObj)
 
+            local HEAD = W.Flat and 26 or 34
             local Section = New("Frame", {Name = "Section", BackgroundTransparency = 0.93, BorderSizePixel = 0, ClipsDescendants = true,
-                Size = UDim2.new(1, 0, 0, 34), LayoutOrder = #tab.sections, Parent = tab.Page})
+                Size = UDim2.new(1, 0, 0, HEAD), LayoutOrder = #tab.sections, Parent = tab.Page})
             Corner(12, Section)
             secObj.Frame = Section
 
-            local Header = New("TextButton", {AutoButtonColor = false, Text = "", BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 34), Parent = Section})
+            local Header = New("TextButton", {AutoButtonColor = false, Text = "", BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, HEAD), Parent = Section})
             local SecTitle = New("TextLabel", {BackgroundTransparency = 1, Position = UDim2.fromOffset(24, 0), Size = UDim2.new(1, -64, 1, 0),
                 Font = Enum.Font.GothamBold, Text = secName, TextSize = 13, TextXAlignment = Left, Parent = Header})
             LocSet(SecTitle, "Text", secName)
@@ -685,19 +686,26 @@ function library.new(self, name, theme)
             Corner(2, SecBar)
             local Arrow = New("TextLabel", {BackgroundTransparency = 1, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -20, 0.5, 0),
                 Size = UDim2.fromOffset(20, 20), Font = Enum.Font.GothamBold, Text = "+", TextSize = 18, Rotation = open and 45 or 0, Parent = Header})
+            if W.Flat then
+                SecTitle.Position = UDim2.fromOffset(8, 0)
+                SecTitle.Size = UDim2.new(1, -40, 1, 0)
+                SecTitle.TextSize = 12
+                SecTitle.Font = Enum.Font.GothamMedium
+                SecBar.Visible = false
+            end
             bind(function(t, a)
                 P(Section, {BackgroundColor3 = t.Element, BackgroundTransparency = t.SecA}, a)
-                P(SecTitle, {TextColor3 = t.Text}, a)
+                P(SecTitle, {TextColor3 = W.Flat and t.SubText or t.Text}, a)
                 P(Arrow, {TextColor3 = t.Accent}, a)
                 P(SecBar, {BackgroundColor3 = t.Accent}, a)
             end)
 
-            local Objs = New("Frame", {Name = "Objs", BackgroundTransparency = 1, Position = UDim2.fromOffset(4, 36), Size = UDim2.new(1, -8, 0, 0), Parent = Section})
+            local Objs = New("Frame", {Name = "Objs", BackgroundTransparency = 1, Position = UDim2.fromOffset(W.Flat and 0 or 4, HEAD + 2), Size = UDim2.new(1, W.Flat and 0 or -8, 0, 0), Parent = Section})
             local ObjsL = New("UIListLayout", {Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = Objs})
 
             local function refresh(instant)
                 local isOpen = open or secObj.searching
-                local target = isOpen and (36 + ObjsL.AbsoluteContentSize.Y + 6) or 34
+                local target = isOpen and (HEAD + 2 + ObjsL.AbsoluteContentSize.Y + (W.Flat and 2 or 4)) or HEAD
                 if instant then
                     Section.Size = UDim2.new(1, 0, 0, target)
                 else
@@ -705,10 +713,7 @@ function library.new(self, name, theme)
                 end
             end
             secObj.refresh = refresh
-            ObjsL:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-                if W.Animating then return end
-                refresh(true)
-            end)
+            ObjsL:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() refresh(true) end)
             refresh(true)
 
             Header.MouseButton1Click:Connect(function()
@@ -788,7 +793,7 @@ function library.new(self, name, theme)
                     TextXAlignment = Enum.TextXAlignment.Center, Parent = Module})
                 Corner(8, L)
                 LocSet(L, "Text", text)
-                Pad(8, 12, L)
+                Pad(5, 10, L)
                 bind(function(t, a) P(L, {BackgroundColor3 = t.Element, BackgroundTransparency = t.ElemA, TextColor3 = t.Text}, a) end)
                 return L
             end
@@ -1421,41 +1426,6 @@ function library.new(self, name, theme)
         if Blur then Blur.Enabled = W.Blur and W.State == "open" end
     end
 
-    local animToken = 0
-    local animUntil = 0
-    local scaleTween
-    W.Animating = false
-
-    local function settle()
-        if W.Destroyed then return end
-        W.Animating = false
-        animUntil = 0
-        if scaleTween then scaleTween:Cancel() scaleTween = nil end
-        if W.State == "open" then
-            Mini.Visible = false
-            miniTween:Pause()
-            MainScale.Scale = 1
-            Holder.Visible = true
-            for _, tb in ipairs(W.Tabs) do
-                for _, sec in ipairs(tb.sections) do
-                    pcall(sec.refresh, true)
-                end
-            end
-            if not W.Perf then
-                glowTween:Play()
-                titleTween:Play()
-            end
-            ClampIntoView(Holder, 8, 0.01)
-        else
-            Holder.Visible = false
-            MainScale.Scale = 1
-            Mini.Visible = true
-            MiniScale.Scale = 0.7
-            Tween(MiniScale, 0.3, {Scale = 1}, EBack)
-            miniTween:Play()
-        end
-    end
-
     local function animateIn()
         Holder.Visible = true
     end
@@ -1463,48 +1433,27 @@ function library.new(self, name, theme)
     function W.Minimize(self)
         if W.Destroyed or W.State ~= "open" then return end
         W.State = "mini"
-        animToken += 1
-        local tok = animToken
         syncBlur()
         if not W.MiniMoved then Mini.Position = Holder.Position end
         glowTween:Pause()
         titleTween:Pause()
-        if scaleTween then scaleTween:Cancel() scaleTween = nil end
-        if W.Perf or not Holder.Visible then
-            settle()
-            return
-        end
-        W.Animating = true
-        animUntil = os.clock() + 0.45
-        scaleTween = Tween(MainScale, 0.2, {Scale = 0.04}, Quint, In)
-        task.delay(0.2, function()
-            if tok == animToken then settle() end
-        end)
+        Holder.Visible = false
+        Mini.Visible = true
+        miniTween:Play()
     end
 
     function W.Restore(self)
         if W.Destroyed or W.State == "open" then return end
         W.State = "open"
-        animToken += 1
-        local tok = animToken
         syncBlur()
-        Mini.Visible = false
         miniTween:Pause()
-        if scaleTween then scaleTween:Cancel() scaleTween = nil end
-        if W.Perf then
-            settle()
-            return
+        Mini.Visible = false
+        Holder.Visible = true
+        if not W.Perf then
+            glowTween:Play()
+            titleTween:Play()
         end
-        if not Holder.Visible then
-            MainScale.Scale = 0.55
-            Holder.Visible = true
-        end
-        W.Animating = true
-        animUntil = os.clock() + 0.5
-        scaleTween = Tween(MainScale, 0.26, {Scale = 1}, Quint, Out)
-        task.delay(0.26, function()
-            if tok == animToken then settle() end
-        end)
+        ClampIntoView(Holder, 8, 0.01)
     end
 
     function W.Toggle(self)
@@ -1516,19 +1465,11 @@ function library.new(self, name, theme)
         W.Destroyed = true
         for _, c in ipairs(conns) do pcall(function() c:Disconnect() end) end
         conns = {}
-        animToken += 1
-        if scaleTween then scaleTween:Cancel() scaleTween = nil end
-        if Holder.Visible and not instant then
-            Tween(MainScale, 0.2, {Scale = 0.04}, Quint, In)
-        end
+        Holder.Visible = false
         Mini.Visible = false
         if Blur then Blur:Destroy() Blur = nil end
         for i, w in ipairs(library.Windows) do if w == W then table.remove(library.Windows, i) break end end
-        if instant then
-            gui:Destroy()
-        else
-            task.delay(0.35, function() gui:Destroy() end)
-        end
+        gui:Destroy()
     end
 
     BtnMin.MouseButton1Click:Connect(function() W:Minimize() end)
@@ -1715,7 +1656,7 @@ function library.new(self, name, theme)
         o = type(o) == "table" and o or {Content = tostring(o)}
         local Dim = New("TextButton", {Name = "Dialog", AutoButtonColor = false, Text = "", BackgroundColor3 = Color3.new(0, 0, 0),
             BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), ZIndex = 50, Parent = Holder})
-        Corner(18, Dim)
+        Corner(14, Dim)
         local Card = New("Frame", {AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.new(0, 300, 0, 0),
             AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = th().Main:Lerp(Color3.new(1, 1, 1), 0.08), BorderSizePixel = 0, Parent = Dim})
         Corner(16, Card)
@@ -1844,7 +1785,6 @@ function library.new(self, name, theme)
     Track(RunService.Heartbeat:Connect(function(dt)
         frames += 1
         decorAcc += dt
-        if W.Animating and os.clock() > animUntil then settle() end
         if decorAcc >= 0.05 then
             local step = decorAcc
             decorAcc = 0
@@ -1955,6 +1895,7 @@ function library.new(self, name, theme)
 
     if cfg.Background then W:SetBackground(cfg.Background) end
     applyBg(false)
+    W:SetGlow()
     if W.Perf then W:SetPerf(true) end
     animateIn()
     return W
